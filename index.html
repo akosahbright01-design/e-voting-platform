@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>LA NOCHE DE HONOR '26 | Vote</title>
+<meta name="theme-color" content="#000000">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🏆%3C/text%3E%3C/svg%3E">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com/3.4.17"></script>
+<script>tailwind.config={theme:{extend:{colors:{gold:'#D4AF37'},fontFamily:{display:['Cinzel','Georgia','serif'],sans:['Inter','system-ui','sans-serif']}}}}</script>
+<style>
+:root{color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{background:radial-gradient(ellipse at 50% -10%,#2e240a 0,#000 55%) fixed;color:#fff}
+.gold-text{background:linear-gradient(90deg,#8a6d1d,#f5d77a,#D4AF37,#f5d77a,#8a6d1d);background-size:200% auto;-webkit-background-clip:text;background-clip:text;color:transparent;animation:sh 7s linear infinite}
+@keyframes sh{to{background-position:200% center}}
+@keyframes up{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+.up{animation:up .6s both}
+.card{background:linear-gradient(160deg,#151515,#080808);border:1px solid #2b2410;transition:transform .3s,border-color .3s,box-shadow .3s}
+.card:hover{transform:translateY(-4px);border-color:#D4AF37;box-shadow:0 12px 40px -12px #d4af3766}
+.btn{background:linear-gradient(135deg,#f5d77a,#D4AF37 50%,#a07f1a);color:#000;font-weight:600;border-radius:9999px;padding:.6rem 1.1rem;transition:.2s}
+.btn:hover{filter:brightness(1.1)}.btn:disabled{filter:grayscale(1);opacity:.4;cursor:not-allowed}
+.ghost{border:1px solid #D4AF37;color:#D4AF37;border-radius:9999px;padding:.6rem 1.1rem;transition:.2s}.ghost:hover,.ghost.on{background:#D4AF3722}
+.inp{width:100%;background:#0d0d0d;border:1px solid #333;border-radius:.75rem;padding:.7rem .9rem;margin-top:.75rem}.inp:focus{outline:2px solid #D4AF37}
+.modal{position:fixed;inset:0;background:#000c;backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;padding:1rem;z-index:50}
+.modal.on{display:flex}.modal>div{max-height:92vh;overflow:auto;animation:up .3s both}
+button:focus-visible,input:focus-visible{outline:2px solid #fff;outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body class="font-sans min-h-screen">
+<div class="border-b border-gold/30 bg-gold/10 py-2 text-center text-sm">
+  <span id="cdl">Voting ends in</span> <b id="cd" class="text-gold tabular-nums">--</b>
+</div>
+<header class="px-4 pb-8 pt-10 text-center">
+  <h1 class="font-display gold-text text-4xl font-bold sm:text-6xl">LA NOCHE DE HONOR '26</h1>
+  <p class="mt-3 text-white/70">UCC CoDE NSS Send-Off Dinner - Class of 2025/2026</p>
+  <p id="ends" class="mt-2 text-sm text-gold"></p>
+  <p id="demo" class="mx-auto mt-3 hidden max-w-md rounded-full border border-white/20 px-3 py-1 text-xs text-white/70">Preview mode: sample data, payments are simulated</p>
+</header>
+<main id="app" class="mx-auto max-w-6xl px-4 pb-20"></main>
+<footer class="border-t border-white/10 py-6 text-center text-xs text-white/40">&copy; 2026 UCC CoDE NSS Send-Off Committee. Every vote is GHS 0.50 and verified by Paystack.</footer>
+
+<div id="m" class="modal" onclick="if(event.target===this)closeM()"></div>
+<div id="v" class="modal" onclick="if(event.target===this)closeM()"></div>
+<div id="toast" class="fixed bottom-6 left-1/2 z-[60] hidden max-w-[90vw] -translate-x-1/2 rounded-full bg-gold px-5 py-3 text-sm font-semibold text-black"></div>
+
+<script>
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let cfg={},cats=[],noms=[],demo=false,view='home',lb=null,nom=null,votes=5,end=new Date(),ended=false,payScript=false;
+const av=n=>'data:image/svg+xml,'+encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400"><rect fill="#161616" width="400" height="400"/><text x="50%" y="58%" font-size="140" text-anchor="middle" fill="#D4AF37" font-family="Georgia">${esc(String(n).split(' ').map(w=>w[0]).slice(0,2).join(''))}</text></svg>`);
+const img=n=>n.photo_url||av(n.full_name);
+const toast=t=>{const e=$('#toast');e.textContent=t;e.classList.remove('hidden');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.add('hidden'),4000)};
+
+function mkDemo(){
+  const d=['Dedication that never sleeps','Style that turns heads','Friendships that last','Presence that fills a room','Service that stood out'];
+  cats=['Most Hardworking','Most Fashionable','Best Pals','Most Charismatic','Best Unit / Best Department'].map((name,i)=>({id:'c'+i,name,description:d[i]}));
+  const names=['Kwame Mensah','Ama Serwaa','Kofi Boateng','Efua Quansah','Yaw Owusu','Abena Asare'];
+  noms=cats.flatMap((c,i)=>[0,1,2].map(j=>({id:`n${i}${j}`,category_id:c.id,full_name:names[(i+j*2)%6],bio:'BSc. Information Technology, Accra Study Centre',citation:'Nominated by classmates for showing up every single day, helping others catch up, and never letting the team down. A true example of what this class stands for.',votes:Math.floor(Math.random()*400)})));
+  end=new Date('2026-10-20T23:59:00Z');
+}
+async function load(){
+  if(!cfg.url&&!demo){try{cfg=await(await fetch('/api/config')).json();if(!cfg.url)throw 0;end=new Date(cfg.deadline)}catch{demo=true;mkDemo();$('#demo').classList.remove('hidden')}}
+  if(!demo){const h={apikey:cfg.anon,Authorization:'Bearer '+cfg.anon};
+    [cats,noms]=await Promise.all([fetch(cfg.url+'/rest/v1/categories?order=sort',{headers:h}).then(r=>r.json()),fetch(cfg.url+'/rest/v1/nominees?order=votes.desc',{headers:h}).then(r=>r.json())])}
+  $('#ends').textContent='Voting ends on '+end.toLocaleString('en-GB',{day:'numeric',month:'long',hour:'numeric',minute:'2-digit',hour12:true,timeZone:'UTC'}).replace(',',' at')+' GMT';
+  tick();render();
+}
+function tick(){
+  const d=end-Date.now(),was=ended;ended=d<=0;
+  if(ended){$('#cdl').textContent='';$('#cd').textContent='Voting Has Ended'}
+  else{const s=Math.floor(d/1e3);$('#cd').textContent=`${Math.floor(s/86400)}d ${String(Math.floor(s%86400/3600)).padStart(2,'0')}h ${String(Math.floor(s%3600/60)).padStart(2,'0')}m ${String(s%60).padStart(2,'0')}s`}
+  if(was!==ended&&cats.length)render();
+}
+setInterval(tick,1000);
+setInterval(()=>{if(!document.querySelector('.modal.on')&&!demo)load().catch(()=>{})},20000);
+
+const board=id=>{const l=noms.filter(n=>n.category_id==id).sort((a,b)=>b.votes-a.votes),m=Math.max(1,...l.map(n=>n.votes));
+  return l.map((n,i)=>`<div class="flex items-center gap-3 py-2"><span class="font-display w-6 text-gold">${i+1}</span><img src="${esc(img(n))}" alt="" class="h-10 w-10 rounded-full object-cover"><div class="flex-1"><div class="flex justify-between text-sm"><span>${esc(n.full_name)}</span><b class="text-gold">${n.votes.toLocaleString()}</b></div><div class="mt-1 h-1.5 rounded bg-white/10"><div class="h-full rounded bg-gold transition-all duration-700" style="width:${n.votes/m*100}%"></div></div></div></div>`).join('')||'<p class="text-center text-white/50">No nominees yet</p>'};
+const card=(n,i)=>`<div class="card up overflow-hidden rounded-2xl" style="animation-delay:${i*70}ms"><img onclick="openP('${n.id}')" src="${esc(img(n))}" alt="${esc(n.full_name)}" class="aspect-square w-full cursor-pointer object-cover"><div class="p-4"><h3 class="font-display text-lg">${esc(n.full_name)}</h3><p class="truncate text-sm text-white/60">${esc(n.bio)}</p><p class="font-display mt-3 text-2xl text-gold">${n.votes.toLocaleString()} <span class="font-sans text-xs text-white/50">votes</span></p><div class="mt-3 flex gap-2"><button class="ghost flex-1 text-sm" onclick="openP('${n.id}')">VIEW PROFILE</button><button class="btn flex-1 text-sm" ${ended?'disabled':''} onclick="openV('${n.id}')">${ended?'VOTING ENDED':'VOTE'}</button></div></div></div>`;
+function render(){
+  const a=$('#app');
+  if(view==='home'){const cur=lb||(cats[0]&&cats[0].id);
+    a.innerHTML=`<h2 class="font-display mb-6 text-center text-xl text-white/80">Choose a category to vote</h2><div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">${cats.map((c,i)=>`<button onclick="go('${c.id}')" class="card up rounded-2xl p-6 text-left" style="animation-delay:${i*80}ms"><h3 class="font-display text-xl text-gold">${esc(c.name)}</h3><p class="mt-1 text-sm text-white/60">${esc(c.description)}</p><p class="mt-4 text-sm">${noms.filter(n=>n.category_id==c.id).length} nominees</p></button>`).join('')}</div>
+    <section class="mt-16"><h2 class="font-display gold-text mb-6 text-center text-3xl">Live Leaderboard</h2><div class="flex gap-2 overflow-x-auto pb-3 sm:justify-center">${cats.map(c=>`<button onclick="lb='${c.id}';render()" class="ghost whitespace-nowrap text-sm ${cur==c.id?'on':''}">${esc(c.name)}</button>`).join('')}</div><div class="mx-auto mt-4 max-w-2xl">${board(cur)}</div></section>`}
+  else{const c=cats.find(x=>x.id==view);if(!c){view='home';return render()}
+    a.innerHTML=`<button class="ghost mb-6 text-sm" onclick="go('home')">&larr; All categories</button><h2 class="font-display gold-text text-3xl">${esc(c.name)}</h2><p class="mb-6 text-white/60">${esc(c.description)}</p>${ended?'<p class="mb-6 rounded-xl border border-gold p-3 text-center font-semibold text-gold">Voting Has Ended</p>':''}<div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">${noms.filter(n=>n.category_id==c.id).map(card).join('')||'<p class="text-white/50">No nominees yet.</p>'}</div><section class="mx-auto mt-14 max-w-2xl"><h3 class="font-display mb-2 text-center text-xl text-gold">Leaderboard</h3>${board(c.id)}</section>`}
+}
+function go(v){view=v;render();scrollTo({top:0})}
+function closeM(){document.querySelectorAll('.modal').forEach(m=>m.classList.remove('on'))}
+addEventListener('keydown',e=>e.key==='Escape'&&closeM());
+function openP(id){nom=noms.find(n=>n.id==id);
+  $('#m').innerHTML=`<div class="card w-full max-w-lg overflow-hidden rounded-2xl"><img src="${esc(img(nom))}" alt="${esc(nom.full_name)}" class="max-h-[50vh] w-full object-cover"><div class="p-6"><h3 class="font-display text-2xl text-gold">${esc(nom.full_name)}</h3><p class="mt-1 text-white/70">${esc(nom.bio)}</p><p class="mt-4 text-sm italic leading-relaxed text-white/80">${esc(nom.citation)}</p><p class="font-display mt-4 text-3xl text-gold">${nom.votes.toLocaleString()} <span class="font-sans text-sm text-white/50">total votes</span></p><div class="mt-4 flex gap-2"><button class="ghost flex-1" onclick="closeM()">Close</button><button class="btn flex-1" ${ended?'disabled':''} onclick="openV('${nom.id}')">${ended?'VOTING ENDED':'VOTE'}</button></div></div></div>`;
+  $('#m').classList.add('on')}
+function openV(id){nom=noms.find(n=>n.id==id);if(ended)return;closeM();
+  $('#v').innerHTML=`<div class="card w-full max-w-md rounded-2xl p-6"><h3 class="font-display text-xl text-gold">Vote for ${esc(nom.full_name)}</h3><p class="text-sm text-white/60">GHS 0.50 per vote</p><div class="mt-4 grid grid-cols-3 gap-2">${[1,5,10,20,50,100].map(n=>`<button class="ghost" onclick="setV(${n})">${n}</button>`).join('')}</div><input id="cv" type="number" min="1" inputmode="numeric" placeholder="Custom number of votes" oninput="setV(this.value,1)" class="inp"><input id="ct" placeholder="Your email or MoMo number" autocomplete="email" class="inp"><p class="mt-5 text-center text-white/70">Total <b id="tot" class="font-display text-2xl text-gold"></b></p><button id="pay" class="btn mt-3 w-full" onclick="pay()">PAY WITH MOMO / CARD</button><button class="mt-2 w-full py-2 text-sm text-white/50" onclick="closeM()">Cancel</button></div>`;
+  setV(5);$('#v').classList.add('on')}
+function setV(x,typed){votes=Math.min(10000,Math.max(1,Math.floor(+x)||1));$('#tot').textContent=`${votes} vote${votes>1?'s':''} = GHS ${(votes*.5).toFixed(2)}`;if(!typed)$('#cv').value=''}
+async function pay(){
+  const c=$('#ct').value.trim();if(c.length<6)return toast('Enter a valid email or MoMo number');
+  if(ended)return toast('Voting Has Ended');
+  if(demo){nom.votes+=votes;closeM();render();return toast(`Demo: ${votes} votes added to ${nom.full_name}`)}
+  const b=$('#pay');b.disabled=true;
+  try{
+    const r=await fetch('/api/init',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nominee_id:nom.id,votes,contact:c})}),j=await r.json();
+    if(!r.ok)throw new Error(j.error);
+    if(!payScript){await new Promise((ok,no)=>{const s=document.createElement('script');s.src='https://js.paystack.co/v1/inline.js';s.onload=ok;s.onerror=no;document.head.appendChild(s)});payScript=true}
+    PaystackPop.setup({key:cfg.paystack,email:j.email,amount:j.amount,currency:'GHS',ref:j.reference,channels:['mobile_money','card'],
+      callback:function(res){verify(res.reference)},onClose:function(){b.disabled=false}}).openIframe();
+  }catch(e){toast(e.message||'Could not start payment');b.disabled=false}
+}
+async function verify(ref){
+  toast('Confirming payment...');
+  try{const j=await(await fetch('/api/verify?reference='+encodeURIComponent(ref))).json();
+    closeM();await load();toast(j.ok?'Payment confirmed. Your votes have been counted!':'Payment not confirmed yet. Votes appear once Paystack confirms.')}
+  catch{toast('Could not confirm yet. Votes appear once Paystack confirms.')}
+}
+load().catch(()=>toast('Could not load data'));
+</script>
+</body>
+</html>

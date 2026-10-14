@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Admin | La Noche de Honor '26</title>
+<script src="https://cdn.tailwindcss.com/3.4.17"></script>
+<style>
+:root{color-scheme:dark}body{background:#000;color:#fff;font-family:Inter,system-ui,sans-serif}
+.i{background:#111;border:1px solid #333;border-radius:.5rem;padding:.55rem;width:100%;margin-top:.5rem}
+.b{background:#D4AF37;color:#000;font-weight:600;border-radius:.5rem;padding:.45rem .9rem}
+.g{border:1px solid #D4AF37;color:#D4AF37;border-radius:.5rem;padding:.45rem .9rem}
+.g.on{background:#D4AF3722}.box{background:#101010;border:1px solid #2b2410;border-radius:.75rem;padding:1rem}
+td,th{padding:.4rem .5rem;border-bottom:1px solid #222;text-align:left;vertical-align:middle}
+</style></head>
+<body class="mx-auto max-w-5xl p-4"><div id="root"></div>
+<script>
+let T=localStorage.getItem('adm'),D=null,tab='Overview';const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+async function api(b){const r=await fetch('/api/admin',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+T},body:JSON.stringify(b)});
+  const j=await r.json();if(r.status===401&&b.action!=='login'){T=null;localStorage.removeItem('adm');boot()}if(!r.ok)throw new Error(j.error);return j}
+const say=t=>alert(t);
+async function boot(){
+  if(!T){$('#root').innerHTML=`<div class="mx-auto mt-24 max-w-sm box"><h1 class="mb-2 text-xl font-bold text-[#D4AF37]">Admin login</h1><input id="pw" type="password" class="i" placeholder="Password" onkeydown="event.key==='Enter'&&login()"><button class="b mt-3 w-full" onclick="login()">Sign in</button></div>`;return}
+  try{D=await api({action:'list'});view()}catch(e){say(e.message)}
+}
+async function login(){try{T=(await api({action:'login',password:$('#pw').value})).token;localStorage.setItem('adm',T);boot()}catch(e){say(e.message)}}
+function out(){T=null;localStorage.removeItem('adm');boot()}
+const cn=id=>(D.categories.find(c=>c.id===id)||{}).name||'-';
+function view(){
+  const tabs=['Overview','Categories','Nominees','Vote logs'];
+  $('#root').innerHTML=`<div class="mb-4 flex flex-wrap items-center gap-2"><h1 class="mr-auto text-xl font-bold text-[#D4AF37]">La Noche de Honor '26 Admin</h1>${tabs.map(t=>`<button class="g ${t===tab?'on':''}" onclick="tab='${t}';view()">${t}</button>`).join('')}<button class="g" onclick="out()">Log out</button></div><div id="pane"></div>`;
+  $('#pane').innerHTML=({Overview:ov,Categories:cat,Nominees:nm,'Vote logs':lg})[tab]();
+}
+function ov(){return `<div class="mb-4 grid gap-3 sm:grid-cols-3"><div class="box"><p class="text-sm text-white/60">Total votes</p><p class="text-3xl font-bold text-[#D4AF37]">${D.totalVotes.toLocaleString()}</p></div><div class="box"><p class="text-sm text-white/60">Revenue</p><p class="text-3xl font-bold text-[#D4AF37]">GHS ${D.revenue.toFixed(2)}</p></div><div class="box"><p class="text-sm text-white/60">Nominees</p><p class="text-3xl font-bold text-[#D4AF37]">${D.nominees.length}</p></div></div>`+
+  D.categories.map(c=>`<div class="box mb-3"><h3 class="mb-2 font-semibold text-[#D4AF37]">${esc(c.name)}</h3><table class="w-full text-sm">${D.nominees.filter(n=>n.category_id===c.id).map((n,i)=>`<tr><td class="w-8">${i+1}</td><td>${esc(n.full_name)}</td><td class="text-right font-bold">${n.votes}</td></tr>`).join('')||'<tr><td>No nominees</td></tr>'}</table></div>`).join('')}
+function cat(){return `<div class="box mb-4"><h3 class="font-semibold" id="ch">Add category</h3><input type="hidden" id="cid"><input id="cnm" class="i" placeholder="Name"><input id="cds" class="i" placeholder="Short description"><input id="cso" type="number" class="i" placeholder="Sort order"><button class="b mt-3" onclick="saveCat()">Save category</button></div><div class="box"><table class="w-full text-sm">${D.categories.map(c=>`<tr><td>${esc(c.name)}</td><td class="text-white/50">${esc(c.description)}</td><td class="text-right"><button class="g" onclick="editCat('${c.id}')">Edit</button> <button class="g" onclick="del('category','${c.id}')">Delete</button></td></tr>`).join('')}</table></div>`}
+function editCat(id){const c=D.categories.find(x=>x.id===id);$('#ch').textContent='Edit category';$('#cid').value=id;$('#cnm').value=c.name;$('#cds').value=c.description||'';$('#cso').value=c.sort;scrollTo(0,0)}
+async function saveCat(){try{await api({action:'save_category',id:$('#cid').value||undefined,name:$('#cnm').value,description:$('#cds').value,sort:$('#cso').value});boot()}catch(e){say(e.message)}}
+function nm(){return `<div class="box mb-4"><h3 class="font-semibold" id="nh">Add nominee</h3><input type="hidden" id="nid"><input id="nn" class="i" placeholder="Full name"><select id="nc" class="i">${D.categories.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('')}</select><input id="nb" class="i" placeholder="Short bio (e.g. BSc. Nursing, Accra Study Centre)"><textarea id="nt" rows="4" class="i" placeholder="Nomination comment / citation"></textarea><label class="mt-2 block text-sm text-white/60">Photo<input id="np" type="file" accept="image/*" class="i"></label><button class="b mt-3" onclick="saveNom()">Save nominee</button></div><div class="box overflow-x-auto"><table class="w-full text-sm"><tr><th></th><th>Name</th><th>Category</th><th>Votes</th><th></th></tr>${D.nominees.map(n=>`<tr><td><img src="${esc(n.photo_url||'')}" alt="" class="h-9 w-9 rounded-full bg-white/10 object-cover"></td><td>${esc(n.full_name)}</td><td>${esc(cn(n.category_id))}</td><td class="font-bold">${n.votes}</td><td class="whitespace-nowrap text-right"><button class="g" onclick="editNom('${n.id}')">Edit</button> <button class="g" onclick="del('nominee','${n.id}')">Delete</button></td></tr>`).join('')}</table></div>`}
+function editNom(id){const n=D.nominees.find(x=>x.id===id);$('#nh').textContent='Edit nominee (leave photo empty to keep it)';$('#nid').value=id;$('#nn').value=n.full_name;$('#nc').value=n.category_id;$('#nb').value=n.bio||'';$('#nt').value=n.citation||'';scrollTo(0,0)}
+function shrink(file){return new Promise((ok,no)=>{const im=new Image();im.onload=()=>{const s=Math.min(1,900/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=im.width*s;c.height=im.height*s;c.getContext('2d').drawImage(im,0,0,c.width,c.height);ok(c.toDataURL('image/jpeg',.85))};im.onerror=no;im.src=URL.createObjectURL(file)})}
+async function saveNom(){try{
+  let photo_url;const f=$('#np').files[0];if(f)photo_url=(await api({action:'upload',data:await shrink(f)})).url;
+  await api({action:'save_nominee',id:$('#nid').value||undefined,full_name:$('#nn').value,category_id:$('#nc').value,bio:$('#nb').value,citation:$('#nt').value,photo_url});boot()}catch(e){say(e.message)}}
+async function del(k,id){if(!confirm('Delete this '+k+'? This cannot be undone.'))return;try{await api({action:'delete_'+k,id});boot()}catch(e){say(e.message)}}
+function lg(){return `<div class="box overflow-x-auto"><table class="w-full text-sm"><tr><th>Time</th><th>Nominee</th><th>Votes</th><th>GHS</th><th>Reference</th><th>Voter</th></tr>${D.logs.map(l=>`<tr><td>${new Date(l.created_at).toLocaleString()}</td><td>${esc((D.nominees.find(n=>n.id===l.nominee_id)||{}).full_name||'-')}</td><td>${l.votes_added}</td><td>${l.amount_paid}</td><td class="text-xs">${esc(l.paystack_reference)}</td><td>${esc(l.voter_contact)}</td></tr>`).join('')||'<tr><td>No votes yet</td></tr>'}</table><p class="mt-2 text-xs text-white/40">Showing latest 500. Vote counts are read-only here by design.</p></div>`}
+boot();
+</script></body></html>
