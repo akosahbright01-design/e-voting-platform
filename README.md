@@ -43,4 +43,4 @@ Use `pk_test`/`sk_test` keys and Paystack test cards. Confirm a vote appears in 
 - Webhook and browser verification can both fire safely; only one counts.
 - Public visitors (anon key) can only read categories and nominees. `vote_logs` and `vote_intents` have no public access.
 - Admin can't edit votes: no endpoint writes `votes`.
-- The deadline is enforced on the server too, not just the countdown.
+- The deadline is enforced on the server too, not just the countdown. 
