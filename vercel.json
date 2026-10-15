@@ -1,3 +1,6 @@
 {
+  "installCommand": "npm install",
+  "buildCommand": null,
+  "outputDirectory": null,
   "rewrites": [{ "source": "/admin", "destination": "/admin.html" }]
 }
